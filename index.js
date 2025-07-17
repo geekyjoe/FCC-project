@@ -10,6 +10,9 @@ var app = express();
 var cors = require('cors');
 app.use(cors({optionsSuccessStatus: 200}));  // some legacy browsers choke on 204
 
+// Trust proxy to get real IP addresses
+app.set('trust proxy', true);
+
 // http://expressjs.com/en/starter/static-files.html
 app.use(express.static('public'));
 
@@ -24,7 +27,7 @@ app.get("/api/hello", function (req, res) {
 });
 
 // Timestamp API endpoint
-app.get("/api/:date?", function (req, res) {
+app.get("/api/timestamp/:date?", function (req, res) {
   let date;
   
   if (!req.params.date) {
@@ -49,6 +52,31 @@ app.get("/api/:date?", function (req, res) {
   res.json({
     unix: date.getTime(),
     utc: date.toUTCString()
+  });
+});
+
+// Request Header Parser API endpoint
+app.get("/api/whoami", function (req, res) {
+  // Get client IP address
+  const ipaddress = req.ip || 
+                   req.connection.remoteAddress || 
+                   req.socket.remoteAddress ||
+                   (req.connection.socket ? req.connection.socket.remoteAddress : null) ||
+                   req.headers['x-forwarded-for']?.split(',')[0] ||
+                   req.headers['x-real-ip'] ||
+                   '127.0.0.1';
+  
+  // Get language from Accept-Language header
+  const language = req.headers['accept-language'] || '';
+  
+  // Get user agent (software) from User-Agent header
+  const software = req.headers['user-agent'] || '';
+  
+  // Return the response in the required format
+  res.json({
+    ipaddress: ipaddress,
+    language: language,
+    software: software
   });
 });
 
